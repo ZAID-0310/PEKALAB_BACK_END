@@ -19,19 +19,27 @@ public class Asistencia {
     @Column(columnDefinition = "uuid")
     private UUID id;
 
+    //relacion con la tabla requerimientoExcel (cupo)
     @ManyToOne
-    @JoinColumn(name = "horario_id")
-    private Horario horario;
+    @JoinColumn(name = "requerimiento_id", nullable = false)
+    private RequerimientoTienda requerimientoTienda;
 
+    //Relacion con el Motorizado
     @ManyToOne
-    @JoinColumn(name = "usuario_id")
+    @JoinColumn(name = "usuario_id",nullable = false)
     private Usuario usuario;
 
     private LocalDateTime horaEntrada;
     private LocalDateTime horaSalida;
 
     @Column(columnDefinition = "geography(Point, 4326)")
-    private Point ubicacionMarcado;
+    private  Point ubicacionMarcado;
 
+    // Para saber si marcó dentro del rango de la tienda
     private Boolean esValida = false;
+
+    // Podemos agregar un campo de observación (ej. "Llegó tarde")
+    private String observacion;
+
+
 }

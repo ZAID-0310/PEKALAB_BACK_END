@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/requerimientos")
@@ -29,5 +30,9 @@ public class RequerimientoController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Error al importar: " + e.getMessage());
         }
+    }
+    @GetMapping("/mi-horario/{usuarioId}")
+    public ResponseEntity<List<RequerimientoTienda>> verMiHorario(@PathVariable UUID usuarioId) {
+        return ResponseEntity.ok(requerimientoService.obtenerHorario(usuarioId));
     }
 }

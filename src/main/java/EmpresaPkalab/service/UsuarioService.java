@@ -51,14 +51,23 @@ public class UsuarioService {
     }
 
     public Usuario actualizarUsuario(UUID id, UsuarioDTO dto) {
+        // 1. Buscamos si el usuario existe en la base de datos
         Usuario usuarioExistente = buscarPorId(id);
+
+        // 2. REGLA DE BLOQUEO: Si el estado es falso (inactivo), lanzamos error
+        if (usuarioExistente.getEstado() == null || !usuarioExistente.getEstado()) {
+            throw new RuntimeException("OPERACIÓN DENEGADA: El usuario está deshabilitado. Debe activarlo para permitir cambios.");
+        }
+
+        // 3. Si está activo, procedemos a mapear los nuevos datos del DTO
         mapearDtoAEntidad(usuarioExistente, dto);
 
-        // Si mandan una nueva contraseña, se actualiza, si no, se queda la anterior
+        // 4. Manejo de contraseña: Solo se actualiza si el admin envía una nueva
         if (dto.getPassword() != null && !dto.getPassword().isEmpty()) {
             usuarioExistente.setPassword(passwordEncoder.encode(dto.getPassword()));
         }
 
+        // 5. Guardamos los cambios en la base de datos
         return usuarioRepository.save(usuarioExistente);
     }
 
@@ -67,6 +76,7 @@ public class UsuarioService {
         usuario.setNombre(dto.getNombre());
         usuario.setApellido(dto.getApellido());
         usuario.setCorreo(dto.getCorreo());
+        
         usuario.setTelefono(dto.getTelefono());
         usuario.setRol(dto.getRol());
         if (dto.getEstado() != null) usuario.setEstado(dto.getEstado());

@@ -24,10 +24,12 @@ public class AuthController {
             Usuario usuario = authService.login(request.getCorreo(), request.getPassword());
             String token = jwtUtil.generarToken(usuario.getCorreo(), usuario.getRol());
 
+            // AGREGAMOS EL "id" AL MAPA DE RESPUESTA
             return ResponseEntity.ok(Map.of(
                     "token", token,
                     "rol", usuario.getRol(),
-                    "nombre", usuario.getNombre()
+                    "nombre", usuario.getNombre(),
+                    "id", usuario.getId() // <--- Asegúrate que tu modelo Usuario tenga getId()
             ));
         } catch (RuntimeException e) {
             return ResponseEntity.status(401).body(Map.of("error", e.getMessage()));

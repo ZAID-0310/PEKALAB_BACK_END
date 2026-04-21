@@ -28,21 +28,24 @@ public class JwtFilter extends OncePerRequestFilter {
             String token = authHeader.substring(7);
             if (jwtUtil.validarToken(token)) {
                 String correo = jwtUtil.extraerCorreo(token);
+                String rol = jwtUtil.extraerRol(token); // Ej: "MOTORIZADO"
 
-                // 1. EXTRAE EL ROL (Asegúrate que tu JwtUtil tenga este método)
-                String rol = jwtUtil.extraerRol(token);
+                if (rol != null) {
+                    // Creamos la autoridad exactamente como se espera en el Config
+                    var authority = new org.springframework.security.core.authority.SimpleGrantedAuthority(rol);
 
-                // 2. CREA LA AUTORIDAD (ADMIN, MOTORIZADO, etc.)
-                var authority = new org.springframework.security.core.authority.SimpleGrantedAuthority(rol);
+                    UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                            correo,
+                            null,
+                            java.util.Collections.singletonList(authority)
+                    );
 
-                // 3. PÁSALE LA LISTA CON EL ROL A SPRING
-                UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                        correo,
-                        null,
-                        java.util.List.of(authority) // <-- YA NO ESTÁ VACÍA
-                );
-
-                SecurityContextHolder.getContext().setAuthentication(auth);
+                    SecurityContextHolder.getContext().setAuthentication(auth);
+                    // LOG PARA DEPURAR: Mira esto en la consola de tu PC
+                    System.out.println("JWT OK: Usuario " + correo + " con Rol: " + rol);
+                }
+            } else {
+                System.out.println("JWT ERROR: Token inválido");
             }
         }
         filterChain.doFilter(request, response);

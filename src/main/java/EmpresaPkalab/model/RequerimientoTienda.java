@@ -25,8 +25,12 @@ public class RequerimientoTienda {
 
     @ManyToOne
     @JoinColumn(name = "tienda_id", nullable = false)
-    @NotFound(action = NotFoundAction.IGNORE) // Evita el crash si la tienda no existe
+    @NotFound(action = NotFoundAction.IGNORE)
     private Tienda tienda;
+
+    @ManyToOne
+    @JoinColumn(name = "motorizado_id")
+    private Usuario motorizado;
 
     @Column(nullable = false)
     private LocalDate fecha;
@@ -40,6 +44,7 @@ public class RequerimientoTienda {
     @Column(name = "hora_fin", nullable = false)
     private LocalTime horaFin;
 
+    // Este es el nombre que usaremos en los Repository (nMotorizado)
     @Column(name = "n_motorizado", nullable = false)
     private Integer nMotorizado;
 

@@ -33,7 +33,7 @@ public class Usuario {
     @Column(unique = true, nullable = false, length = 150)
     private String correo;
 
-    @Column(nullable = false) // <--- ESTE ES EL QUE FALTABA PARA EL LOGIN
+    @Column(nullable = false)
     private String password;
 
     @Column(length = 20)

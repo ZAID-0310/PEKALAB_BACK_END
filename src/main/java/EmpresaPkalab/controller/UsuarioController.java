@@ -17,6 +17,14 @@ public class UsuarioController {
 
     private final UsuarioService usuarioService;
 
+
+    // BUSCADOR POR NOMBRE: Ideal para filtrar la lista en el frontend
+    @GetMapping("/buscar")
+    public ResponseEntity<List<Usuario>> buscarPorNombre(@RequestParam String nombre) {
+        List<Usuario> resultados = usuarioService.buscarPorNombre(nombre);
+        return ResponseEntity.ok(resultados);
+    }
+
     @PostMapping("/registrar")
     public ResponseEntity<Usuario> registrar(@RequestBody UsuarioDTO usuarioDTO) {
         return ResponseEntity.ok(usuarioService.registrarUsuario(usuarioDTO));
@@ -50,4 +58,6 @@ public class UsuarioController {
         usuarioService.cambiarEstado(id, activo);
         return ResponseEntity.ok("Estado actualizado");
     }
+
+
 }

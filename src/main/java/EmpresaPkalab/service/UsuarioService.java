@@ -36,6 +36,13 @@ public class UsuarioService {
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
     }
 
+    public List<Usuario> buscarPorNombre(String nombre) {
+        if (nombre == null || nombre.trim().isEmpty()) {
+            return usuarioRepository.findAll();
+        }
+        return usuarioRepository.findByNombreContainingIgnoreCase(nombre);
+    }
+
     public Usuario registrarUsuario(UsuarioDTO dto) {
         Usuario usuario = new Usuario();
         mapearDtoAEntidad(usuario, dto);

@@ -20,14 +20,19 @@ public class Asistencia {
     private UUID id;
 
     //relacion con la tabla requerimientoExcel (cupo)
-    @ManyToOne
+    /*@ManyToOne
     @JoinColumn(name = "requerimiento_id", nullable = false)
     private RequerimientoTienda requerimientoTienda;
-
+*/
     //Relacion con el Motorizado
     @ManyToOne
     @JoinColumn(name = "usuario_id",nullable = false)
     private Usuario usuario;
+
+    // En Asistencia.java
+    @ManyToOne
+    @JoinColumn(name = "horario_id", nullable = false) // Cambiamos el nombre de la columna
+    private Horario horario; // Ahora apunta a Horario
 
     private LocalDateTime horaEntrada;
     private LocalDateTime horaSalida;

@@ -2,10 +2,10 @@ package EmpresaPkalab.service;
 
 import EmpresaPkalab.dto.MarcadoRequest;
 import EmpresaPkalab.model.Asistencia;
-import EmpresaPkalab.model.RequerimientoTienda; // Tu modelo
+import EmpresaPkalab.model.Horario;
 import EmpresaPkalab.model.Usuario;
 import EmpresaPkalab.repository.AsistenciaRepository;
-import EmpresaPkalab.repository.RequerimientoRepository; // Tu repositorio
+import EmpresaPkalab.repository.HorarioRepository;
 import EmpresaPkalab.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.locationtech.jts.geom.Coordinate;
@@ -15,7 +15,6 @@ import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -28,52 +27,57 @@ public class AsistenciaService {
 
     private final AsistenciaRepository asistenciaRepository;
     private final UsuarioRepository usuarioRepository;
-    private final RequerimientoRepository requerimientoRepo; // Inyectado correctamente
+    private final HorarioRepository horarioRepo;
 
     private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
 
     @Transactional
     public Asistencia registrarEntrada(MarcadoRequest request) {
-        // 1. Buscamos al usuario usando el UUID que viene en el DTO
+        // 1. Buscamos al motorizado
         Usuario usuario = usuarioRepository.findById(request.getUsuarioId())
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        // 2. Buscamos el RequerimientoTienda usando el UUID
-        // Aquí usamos requerimientoRepo que maneja la entidad RequerimientoTienda
-        RequerimientoTienda req = requerimientoRepo.findById(request.getRequerimientoId())
-                .orElseThrow(() -> new RuntimeException("Requerimiento no encontrado"));
+        // 2. Buscamos el Horario asignado (el ID que viene de la App de Android)
+        Horario horario = horarioRepo.findById(request.getRequerimientoId())
+                .orElseThrow(() -> new RuntimeException("No se encontró la asignación de horario"));
 
-        // 3. Procesamos la ubicación PostGIS
+        // 3. Procesamos la ubicación GPS del celular
         Point puntoMovil = geometryFactory.createPoint(new Coordinate(request.getLongitud(), request.getLatitud()));
 
-        // 4. Creamos la asistencia
+        // 4. Creamos el objeto Asistencia
         Asistencia asistencia = new Asistencia();
         asistencia.setUsuario(usuario);
-        asistencia.setRequerimientoTienda(req);
+        asistencia.setHorario(horario); // Vinculamos directamente al modelo Horario
         asistencia.setHoraEntrada(LocalDateTime.now());
         asistencia.setUbicacionMarcado(puntoMovil);
 
-        // 5. Validación de cercanía con la Tienda
-        // Accedemos a la ubicación fija de la tienda vinculada al requerimiento
-        if (req.getTienda() != null && req.getTienda().getUbicacion() != null) {
-            double distanciaMetros = puntoMovil.distance(req.getTienda().getUbicacion()) * 111319.9;
+        // 5. Validación de cercanía con la Tienda del Horario
+        if (horario.getTienda() != null && horario.getTienda().getUbicacion() != null) {
+            Point ubicacionTienda = horario.getTienda().getUbicacion();
 
-            if (distanciaMetros <= 200) { // Tolerancia de 200 metros
+            // Usamos el radio personalizado de tu tabla 'tienda'
+            int radioPermitido = (horario.getTienda().getRadioPermitidoMetros() != null)
+                    ? horario.getTienda().getRadioPermitidoMetros()
+                    : 100;
+
+            // Calculamos distancia real (aproximación en metros)
+            double distanciaMetros = puntoMovil.distance(ubicacionTienda) * 111319.9;
+
+            if (distanciaMetros <= radioPermitido) {
                 asistencia.setEsValida(true);
                 asistencia.setObservacion("Marcado válido a " + (int)distanciaMetros + "m.");
             } else {
                 asistencia.setEsValida(false);
-                asistencia.setObservacion("Fuera de rango por " + (int)distanciaMetros + "m.");
+                asistencia.setObservacion("Fuera de rango: " + (int)distanciaMetros + "m. (Máximo: " + radioPermitido + "m)");
             }
         } else {
             asistencia.setEsValida(false);
-            asistencia.setObservacion("Error: La tienda no tiene coordenadas.");
+            asistencia.setObservacion("Error: La tienda no tiene coordenadas configuradas.");
         }
 
         return asistenciaRepository.save(asistencia);
     }
 
-    // Método para registrar la salida
     @Transactional
     public Asistencia registrarSalida(UUID asistenciaId) {
         Asistencia asistencia = asistenciaRepository.findById(asistenciaId)
@@ -83,11 +87,10 @@ public class AsistenciaService {
         return asistenciaRepository.save(asistencia);
     }
 
-    // Método para verificar si ya marcó (Útil para el flujo del App)
-    public Map<String, Object> obtenerAsistenciaDia(UUID usuarioId, UUID reqId) {
-        return asistenciaRepository.findByUsuarioIdAndRequerimientoTiendaId(usuarioId, reqId)
+    public Map<String, Object> obtenerAsistenciaDia(UUID usuarioId, UUID horarioId) {
+        // Buscamos si ya existe asistencia para este usuario y este horario
+        return asistenciaRepository.findByUsuarioIdAndHorarioId(usuarioId, horarioId)
                 .map(a -> {
-                    // Creamos el mapa explícitamente como <String, Object>
                     Map<String, Object> resultado = new HashMap<>();
                     resultado.put("asistenciaId", a.getId());
                     resultado.put("marcoEntrada", true);
@@ -96,24 +99,29 @@ public class AsistenciaService {
                 })
                 .orElse(Map.of("marcoEntrada", false));
     }
-    /**
-     * GENERAR REPORTE DE ASISTENCIAS (Planificado vs Real)
-     * Este método servirá para tu nueva pantalla de reportes en React.
-     */
-    public List<Asistencia> obtenerReporteAsistencias(LocalDate inicio, LocalDate fin) {
-        // Convertimos LocalDate a LocalDateTime (inicio y fin del día)
-        LocalDateTime fechaInicio = inicio.atStartOfDay();
-        LocalDateTime fechaFin = fin.atTime(23, 59, 59);
 
-        // Usamos el nuevo método del repositorio que creamos
-        return asistenciaRepository.findByHoraEntradaBetweenOrderByHoraEntradaAsc(fechaInicio, fechaFin);
+    // --- NUEVOS MÉTODOS PARA EL PANEL ADMINISTRADOR ---
+
+    /**
+     * Lista todas las asistencias para el administrador.
+     * Ideal para una tabla general.
+     */
+    public List<Asistencia> listarTodas() {
+        return asistenciaRepository.findAll();
     }
 
     /**
-     * REPORTE ESPECÍFICO DE ALERTAS
-     * Filtra solo las asistencias que fueron marcadas fuera de rango.
+     * Lista solo las alertas (marcados fuera de rango).
+     * Útil para notificaciones en el panel.
      */
-    public List<Asistencia> obtenerAlertasGeograficas() {
+    public List<Asistencia> listarAlertasFueraDeRango() {
         return asistenciaRepository.findByEsValidaFalseOrderByHoraEntradaDesc();
+    }
+
+    /**
+     * Reporte por fechas.
+     */
+    public List<Asistencia> obtenerReportePorFechas(LocalDateTime inicio, LocalDateTime fin) {
+        return asistenciaRepository.findByHoraEntradaBetweenOrderByHoraEntradaAsc(inicio, fin);
     }
 }

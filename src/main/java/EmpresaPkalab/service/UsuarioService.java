@@ -43,6 +43,14 @@ public class UsuarioService {
         return usuarioRepository.findByNombreContainingIgnoreCase(nombre);
     }
 
+
+    // En UsuarioService.java
+    public UUID obtenerIdPorEmail(String email) {
+        return usuarioRepository.findByCorreo(email)
+                .map(u -> u.getId())
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+    }
+
     public Usuario registrarUsuario(UsuarioDTO dto) {
         Usuario usuario = new Usuario();
         mapearDtoAEntidad(usuario, dto);

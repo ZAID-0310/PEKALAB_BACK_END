@@ -24,6 +24,7 @@ public class AsistenciaController {
     @PostMapping("/marcar-entrada")
     public ResponseEntity<?> marcarEntrada(@RequestBody MarcadoRequest request) {
         try {
+            // El service ahora busca internamente en la tabla 'horario'
             Asistencia asistencia = asistenciaService.registrarEntrada(request);
             return ResponseEntity.ok(Map.of(
                     "mensaje", "Asistencia procesada",
@@ -54,35 +55,46 @@ public class AsistenciaController {
         }
     }
 
-    @GetMapping("/estado-hoy/{usuarioId}/{requerimientoId}")
+    /**
+     * Consultar si el motorizado ya marcó hoy.
+     * Cambiamos el nombre del PathVariable de 'requerimientoId' a 'horarioId'
+     * para que coincida con lo que espera el nuevo Service.
+     */
+    @GetMapping("/estado-hoy/{usuarioId}/{horarioId}")
     public ResponseEntity<?> consultarEstadoHoy(
             @PathVariable UUID usuarioId,
-            @PathVariable UUID requerimientoId) {
+            @PathVariable UUID horarioId) {
         try {
-            return ResponseEntity.ok(asistenciaService.obtenerAsistenciaDia(usuarioId, requerimientoId));
+            // El service ahora usa findByUsuarioIdAndHorarioId
+            return ResponseEntity.ok(asistenciaService.obtenerAsistenciaDia(usuarioId, horarioId));
         } catch (Exception e) {
-            return ResponseEntity.ok(Map.of("asistencia", "ninguna"));
+            // Si hay error, asumimos que no hay asistencia previa
+            return ResponseEntity.ok(Map.of("marcoEntrada", false));
         }
     }
 
-    // --- NUEVOS ENDPOINTS PARA EL PANEL DE ADMINISTRADOR (REACT) ---
+    // --- ENDPOINTS PARA EL PANEL DE ADMINISTRADOR (REACT) ---
 
-    /**
-     * Reporte General por rango de fechas
-     * URL de ejemplo: /api/asistencia/reporte?inicio=2026-04-01&fin=2026-04-30
-     */
-    @GetMapping("/reporte")
+    @GetMapping("/admin/lista-completa")
+    public ResponseEntity<List<Asistencia>> obtenerTodas() {
+        return ResponseEntity.ok(asistenciaService.listarTodas());
+    }
+
+    @GetMapping("/admin/reporte")
     public ResponseEntity<List<Asistencia>> obtenerReporte(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fin) {
-        return ResponseEntity.ok(asistenciaService.obtenerReporteAsistencias(inicio, fin));
+
+        // Convertimos LocalDate a LocalDateTime para tu service
+        return ResponseEntity.ok(asistenciaService.obtenerReportePorFechas(
+                inicio.atStartOfDay(),
+                fin.atTime(23, 59, 59)
+        ));
     }
 
-    /**
-     * Reporte de Alertas (Solo marcaciones fuera de rango GPS)
-     */
-    @GetMapping("/alertas")
+    @GetMapping("/admin/alertas")
     public ResponseEntity<List<Asistencia>> obtenerAlertas() {
-        return ResponseEntity.ok(asistenciaService.obtenerAlertasGeograficas());
+        // Llama al método que creamos en el service para esValida = false
+        return ResponseEntity.ok(asistenciaService.listarAlertasFueraDeRango());
     }
 }

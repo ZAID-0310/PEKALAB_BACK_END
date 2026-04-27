@@ -26,7 +26,6 @@ public interface UsuarioRepository extends JpaRepository<Usuario, UUID> {
 
     List<Usuario> findByNombreContainingIgnoreCase(String nombre);
 
-
     /**
      * Busca al motorizado más cercano disponible que no tenga cruces de horario.
      * Utiliza el operador <-> de PostGIS para una búsqueda eficiente por índice GIST.

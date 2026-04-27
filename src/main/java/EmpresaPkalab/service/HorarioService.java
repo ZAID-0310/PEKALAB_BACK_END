@@ -134,4 +134,12 @@ public class HorarioService {
         // MANTÉN ESTA: Borra solo lo que vas a sobreescribir en la nueva asignación
         horarioRepository.deleteByFechaGreaterThanEqual(fechaInicio);
     }
+    public List<Horario> obtenerProximos(UUID usuarioId) {
+        return horarioRepository.findByUsuarioIdAndFechaGreaterThanEqualOrderByFechaAsc(usuarioId, LocalDate.now());
+    }
+
+    public List<Horario> obtenerHistorial(UUID usuarioId) {
+        return horarioRepository.findByUsuarioIdAndFechaLessThanOrderByFechaDesc(usuarioId, LocalDate.now());
+    }
+
 }

@@ -19,6 +19,11 @@ public interface HorarioRepository extends JpaRepository<Horario, UUID> {
     // 1. Para que el motorizado vea su agenda completa
     List<Horario> findByUsuarioId(UUID usuarioId);
 
+    // Trae horarios de hoy en adelante (Lo que falta por marcar)
+
+    // Trae horarios antiguos (El historial)
+    List<Horario> findByUsuarioIdAndFechaLessThanOrderByFechaDesc(UUID usuarioId, LocalDate fecha);
+
     // 2. Para la vista semanal del motorizado
     List<Horario> findByUsuarioIdAndFechaGreaterThanEqualOrderByFechaAsc(UUID usuarioId, LocalDate fecha);
 

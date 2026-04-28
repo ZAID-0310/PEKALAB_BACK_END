@@ -40,23 +40,24 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
 
-                        // 1. ENDPOINTS DE REPORTE (Solo ADMINISTRADOR)
-                        // Agregamos esto arriba para que tenga prioridad sobre el asterisco general
-                        .requestMatchers("/api/asistencia/reporte").hasAuthority("ADMINISTRADOR")
-                        .requestMatchers("/api/asistencia/alertas").hasAuthority("ADMINISTRADOR")
+                        // 1. ASISTENCIA ADMIN (Protección total)
+                        .requestMatchers("/api/asistencia/admin/**").hasAuthority("ADMINISTRADOR")
 
-                        // 2. Rutas para MOTORIZADO y ADMIN (Uso diario)
+                        // 2. RUTAS MOTORIZADO / ÁREAS COMUNES
+                        // Agregamos aquí el endpoint que usa el motorizado
+                        .requestMatchers("/api/horarios/mi-horario/**").hasAnyAuthority("MOTORIZADO", "ADMINISTRADOR")
+                        .requestMatchers("/api/horarios/proximos/**").authenticated()
+                        .requestMatchers("/api/horarios/historial/**").authenticated()
+
+                        // Tus rutas de marcado de asistencia que ya funcionan:
                         .requestMatchers("/api/asistencia/marcar-entrada").hasAnyAuthority("MOTORIZADO", "ADMINISTRADOR")
                         .requestMatchers("/api/asistencia/marcar-salida/**").hasAnyAuthority("MOTORIZADO", "ADMINISTRADOR")
                         .requestMatchers("/api/asistencia/estado-hoy/**").hasAnyAuthority("MOTORIZADO", "ADMINISTRADOR")
 
-                        .requestMatchers("/api/requerimientos/mi-horario/**").hasAnyAuthority("MOTORIZADO", "ADMINISTRADOR")
-                        .requestMatchers("/api/horarios/mi-agenda/**").hasAnyAuthority("MOTORIZADO", "ADMINISTRADOR")
-
-                        // 3. Rutas exclusivas para ADMINISTRADOR
-                        .requestMatchers("/api/requerimientos/**").hasAuthority("ADMINISTRADOR")
+                        // 3. TODO LO DEMÁS (Solo para Richard)
                         .requestMatchers("/api/usuarios/**").hasAuthority("ADMINISTRADOR")
                         .requestMatchers("/api/tiendas/**").hasAuthority("ADMINISTRADOR")
+                        // El resto de los horarios (listar todos, asignar, editar) siguen protegidos:
                         .requestMatchers("/api/horarios/**").hasAuthority("ADMINISTRADOR")
 
                         .anyRequest().authenticated()

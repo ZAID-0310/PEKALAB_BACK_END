@@ -16,6 +16,9 @@ import java.util.UUID;
 @Repository
 public interface UsuarioRepository extends JpaRepository<Usuario, UUID> {
 
+    // Esto ordena automáticamente por fecha de creación descendente
+    List<Usuario> findAllByOrderByCreatedAtDesc();
+
     Optional<Usuario> findByCorreo(String correo);
 
     Optional<Usuario> findByDni(String dni);

@@ -24,7 +24,7 @@ public class UsuarioService {
     private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
 
     public List<Usuario> listarTodos() {
-        return usuarioRepository.findAll();
+        return usuarioRepository.findAllByOrderByCreatedAtDesc();
     }
 
     public Optional<Usuario> buscarPorDni(String dni) {
